@@ -1,0 +1,9 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose
+runcmd:
+  - usermod -aG docker airflowadmin
+  - systemctl enable docker
+  - systemctl start docker
