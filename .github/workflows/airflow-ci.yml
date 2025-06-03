@@ -1,13 +1,13 @@
-name: Terraform Deploy Azure Airflow
+name: Terraform + Deploy Airflow
 
 on:
   push:
     tags:
-      - 'v*'  # Exemplo: v1.0.0, v2.1.3 etc.
+      - 'v*'
 
 jobs:
-  terraform:
-    name: 'Terraform Plan and Apply'
+  terraform-and-deploy:
+    name: "Provision Infra + Deploy Airflow"
     runs-on: ubuntu-latest
 
     defaults:
@@ -37,3 +37,31 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
+
+      - name: Extract Public IP from Terraform
+        id: tfoutput
+        run: |
+          echo "ip=$(terraform output -raw vm_ip)" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for VM to be ready
+        run: sleep 60
+
+      - name: Copy Airflow project to VM via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ steps.tfoutput.outputs.ip }}
+          username: airflowadmin
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./airflow"    # ajuste conforme sua pasta raiz
+          target: "~/airflow"
+
+      - name: Run docker compose up via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ steps.tfoutput.outputs.ip }}
+          username: airflowadmin
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/airflow
+            docker compose down || true
+            docker compose up -d --build
