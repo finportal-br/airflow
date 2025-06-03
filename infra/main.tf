@@ -7,70 +7,69 @@ resource "azurerm_resource_group" "rg" {
   location = "eastus"
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "airflow-vnet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.rg.location
+resource "azurerm_container_registry" "acr" {
+  name                = "airflowacr1234"
   resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Basic"
+  admin_enabled       = true
 }
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "airflow-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
-resource "azurerm_network_interface" "nic" {
-  name                = "airflow-nic"
+resource "azurerm_log_analytics_workspace" "log" {
+  name                = "airflow-logs"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
 
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.public_ip.id
+resource "azurerm_container_app_environment" "env" {
+  name                       = "airflow-env"
+  location                   = azurerm_resource_group.rg.location
+  resource_group_name        = azurerm_resource_group.rg.name
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.log.id
+}
+
+resource "azurerm_container_app" "web" {
+  name                         = "airflow-web"
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = azurerm_resource_group.rg.location
+
+  revision_mode = "Single"
+  variable "redeploy_tag" {
+    type    = string
+    default = "dev"
+  }
+
+  template {
+    revision_suffix = var.redeploy_tag
+    container {
+      name   = "airflow"
+      image  = "${azurerm_container_registry.acr.login_server}/airflow:latest"
+      cpu    = 0.5
+      memory = "1.0Gi"
+      command = ["airflow", "webserver"]
+      env {
+        name  = "AIRFLOW__CORE__LOAD_EXAMPLES"
+        value = "false"
+      }
+    }
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = 8080
+    transport        = "auto"
+  }
+
+  registry {
+    server   = azurerm_container_registry.acr.login_server
+    username = azurerm_container_registry.acr.admin_username
+    password = azurerm_container_registry.acr.admin_password
   }
 }
 
-resource "azurerm_public_ip" "public_ip" {
-  name                = "airflow-pip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
-resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "airflow-vm"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  size                = "Standard_B2s"
-  admin_username      = "airflowadmin"
-  network_interface_ids = [azurerm_network_interface.nic.id]
-  disable_password_authentication = true
-
-  admin_ssh_key {
-    username   = "airflowadmin"
-    public_key = var.ssh_public_key
-  }
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts"
-    version   = "latest"
-  }
-
-  custom_data = filebase64("${path.module}/cloud-init.yaml")
-}
-
-output "vm_ip" {
-  value = azurerm_public_ip.public_ip.ip_address
+output "url" {
+  value = azurerm_container_app.web.ingress[0].fqdn
 }
