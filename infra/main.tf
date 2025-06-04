@@ -27,6 +27,12 @@ resource "azurerm_container_app_environment" "env" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.log.id
 }
 
+
+variable "acr_password" {
+  type = string
+}
+
+
 resource "azurerm_container_app" "web" {
   name                         = "airflow-web"
   container_app_environment_id = azurerm_container_app_environment.env.id
@@ -37,9 +43,6 @@ resource "azurerm_container_app" "web" {
 
   # 🔐 Referência ao ACR manual
 
-  variable "acr_password" {
-    type = string
-  }
   registry {
     server               = "airflowacr1234.azurecr.io"
     username             = "airflowacr1234"
