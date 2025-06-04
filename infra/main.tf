@@ -37,7 +37,6 @@ resource "azurerm_container_app" "web" {
   name                         = "airflow-web"
   container_app_environment_id = azurerm_container_app_environment.env.id
   resource_group_name          = azurerm_resource_group.rg.name
-  location                     = azurerm_resource_group.rg.location
 
   revision_mode = "Single"
 
