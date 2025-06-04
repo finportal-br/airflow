@@ -9,23 +9,18 @@ variable "redeploy_tag" {
   default = "dev"
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "airflow-rg"
-  location = "eastus"
-}
-
 resource "azurerm_log_analytics_workspace" "log" {
   name                = "airflow-logs"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = "eastus"
+  resource_group_name = "airflow-rg"
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_container_app_environment" "env" {
   name                       = "airflow-env"
-  location                   = azurerm_resource_group.rg.location
-  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = "eastus"
+  resource_group_name        = "airflow-rg"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.log.id
 }
 
@@ -38,7 +33,7 @@ variable "acr_password" {
 resource "azurerm_container_app" "web" {
   name                         = "airflow-web"
   container_app_environment_id = azurerm_container_app_environment.env.id
-  resource_group_name          = azurerm_resource_group.rg.name
+  resource_group_name          = "airflow-rg"
 
   revision_mode = "Single"
 
