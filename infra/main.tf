@@ -1,5 +1,5 @@
 # =======================
-# Terraform: main.tf completo ajustado
+# Terraform: main.tf ajustado com correções
 # =======================
 
 provider "azurerm" {
@@ -66,12 +66,17 @@ resource "azurerm_container_app" "web" {
     external_enabled = true
     target_port      = 8080
     transport        = "auto"
+
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
   }
 
   registry {
     server   = azurerm_container_registry.acr.login_server
     username = azurerm_container_registry.acr.admin_username
-    password = azurerm_container_registry.acr.admin_password
+    secret   = azurerm_container_registry.acr.admin_password
   }
 }
 
