@@ -1,5 +1,14 @@
+# =======================
+# Terraform: main.tf completo ajustado
+# =======================
+
 provider "azurerm" {
   features {}
+}
+
+variable "redeploy_tag" {
+  type    = string
+  default = "dev"
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -37,10 +46,6 @@ resource "azurerm_container_app" "web" {
   location                     = azurerm_resource_group.rg.location
 
   revision_mode = "Single"
-  variable "redeploy_tag" {
-    type    = string
-    default = "dev"
-  }
 
   template {
     revision_suffix = var.redeploy_tag
