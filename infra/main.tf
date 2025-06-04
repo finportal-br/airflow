@@ -1,5 +1,7 @@
 provider "azurerm" {
   features {}
+
+  subscription_id = "7fcedad6-03d1-4afa-8a82-09dc2a4c1fad"
 }
 
 variable "redeploy_tag" {
