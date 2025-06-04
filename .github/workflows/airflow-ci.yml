@@ -33,7 +33,9 @@ jobs:
         run: |
           cd infra
           terraform init
-          terraform apply -auto-approve -var="redeploy_tag=${{ github.ref_name }}"
+          terraform apply -auto-approve \
+            -var="redeploy_tag=${{ github.ref_name }}" \
+            -var="acr_password=${{ secrets.ACR_PASSWORD }}"
 
       - name: Build and Push Image to ACR
         run: |

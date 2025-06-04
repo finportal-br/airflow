@@ -12,14 +12,6 @@ resource "azurerm_resource_group" "rg" {
   location = "eastus"
 }
 
-resource "azurerm_container_registry" "acr" {
-  name                = "airflowacr1234"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  sku                 = "Basic"
-  admin_enabled       = true
-}
-
 resource "azurerm_log_analytics_workspace" "log" {
   name                = "airflow-logs"
   location            = azurerm_resource_group.rg.location
@@ -43,10 +35,20 @@ resource "azurerm_container_app" "web" {
 
   revision_mode = "Single"
 
+  # 🔐 Referência ao ACR manual
   registry {
-    server   = azurerm_container_registry.acr.login_server
-    username = azurerm_container_registry.acr.admin_username
-    password = azurerm_container_registry.acr.admin_password
+    server               = "airflowacr1234.azurecr.io"
+    username             = "airflowacr1234"
+    password_secret_name = "acr-password"
+  }
+
+  variable "acr_password" {
+    type = string
+  }
+
+  secret {
+    name  = "acr-password"
+    value = var.acr_password
   }
 
   template {
@@ -54,7 +56,7 @@ resource "azurerm_container_app" "web" {
 
     container {
       name    = "airflow"
-      image   = "${azurerm_container_registry.acr.login_server}/airflow:latest"
+      image   = "airflowacr1234.azurecr.io/airflow:latest"
       cpu     = 0.5
       memory  = "1.0Gi"
       command = ["airflow", "webserver"]
