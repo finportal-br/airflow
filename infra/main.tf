@@ -1,7 +1,3 @@
-# =======================
-# Terraform: main.tf completo e corrigido
-# =======================
-
 provider "azurerm" {
   features {}
 }
@@ -47,6 +43,12 @@ resource "azurerm_container_app" "web" {
 
   revision_mode = "Single"
 
+  registry {
+    server   = azurerm_container_registry.acr.login_server
+    username = azurerm_container_registry.acr.admin_username
+    password = azurerm_container_registry.acr.admin_password
+  }
+
   template {
     revision_suffix = var.redeploy_tag
 
@@ -61,17 +63,6 @@ resource "azurerm_container_app" "web" {
         name  = "AIRFLOW__CORE__LOAD_EXAMPLES"
         value = "false"
       }
-    }
-
-    registry {
-      server               = azurerm_container_registry.acr.login_server
-      username             = azurerm_container_registry.acr.admin_username
-      password_secret_name = "acr-password"
-    }
-
-    secret {
-      name  = "acr-password"
-      value = azurerm_container_registry.acr.admin_password
     }
   }
 
