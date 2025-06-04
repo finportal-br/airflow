@@ -1,5 +1,5 @@
 # =======================
-# Terraform: main.tf ajustado com correções
+# Terraform: main.tf ajustado com correções finais
 # =======================
 
 provider "azurerm" {
@@ -76,7 +76,12 @@ resource "azurerm_container_app" "web" {
   registry {
     server   = azurerm_container_registry.acr.login_server
     username = azurerm_container_registry.acr.admin_username
-    secret   = azurerm_container_registry.acr.admin_password
+    password_secret_ref = "acr-password"
+  }
+
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
   }
 }
 
