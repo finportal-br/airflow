@@ -18,6 +18,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Deploy Infra with Terraform
+        run: |
+          cd infra
+          terraform init
+          terraform apply -auto-approve -var="redeploy_tag=${{ github.ref_name }}"
+
       - name: Build and Push Image to ACR
         run: |
           docker build -t airflow:latest .
@@ -28,9 +34,3 @@ jobs:
           docker tag airflow:latest airflowacr1234.azurecr.io/airflow:latest
           echo $ACR_PASSWORD | docker login airflowacr1234.azurecr.io -u $ACR_USERNAME --password-stdin
           docker push airflowacr1234.azurecr.io/airflow:latest
-
-      - name: Deploy Infra with Terraform
-        run: |
-          cd infra
-          terraform init
-          terraform apply -auto-approve -var="redeploy_tag=${{ github.ref_name }}"
