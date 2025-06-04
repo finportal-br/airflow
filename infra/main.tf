@@ -36,14 +36,14 @@ resource "azurerm_container_app" "web" {
   revision_mode = "Single"
 
   # 🔐 Referência ao ACR manual
+
+  variable "acr_password" {
+    type = string
+  }
   registry {
     server               = "airflowacr1234.azurecr.io"
     username             = "airflowacr1234"
     password_secret_name = "acr-password"
-  }
-
-  variable "acr_password" {
-    type = string
   }
 
   secret {
