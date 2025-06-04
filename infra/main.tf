@@ -1,5 +1,5 @@
 # =======================
-# Terraform: main.tf ajustado com correções finais
+# Terraform: main.tf completo e corrigido
 # =======================
 
 provider "azurerm" {
@@ -49,16 +49,29 @@ resource "azurerm_container_app" "web" {
 
   template {
     revision_suffix = var.redeploy_tag
+
     container {
-      name   = "airflow"
-      image  = "${azurerm_container_registry.acr.login_server}/airflow:latest"
-      cpu    = 0.5
-      memory = "1.0Gi"
+      name    = "airflow"
+      image   = "${azurerm_container_registry.acr.login_server}/airflow:latest"
+      cpu     = 0.5
+      memory  = "1.0Gi"
       command = ["airflow", "webserver"]
+
       env {
         name  = "AIRFLOW__CORE__LOAD_EXAMPLES"
         value = "false"
       }
+    }
+
+    registry {
+      server               = azurerm_container_registry.acr.login_server
+      username             = azurerm_container_registry.acr.admin_username
+      password_secret_name = "acr-password"
+    }
+
+    secret {
+      name  = "acr-password"
+      value = azurerm_container_registry.acr.admin_password
     }
   }
 
@@ -71,17 +84,6 @@ resource "azurerm_container_app" "web" {
       percentage      = 100
       latest_revision = true
     }
-  }
-
-  registry {
-    server   = azurerm_container_registry.acr.login_server
-    username = azurerm_container_registry.acr.admin_username
-    password_secret_ref = "acr-password"
-  }
-
-  secret {
-    name  = "acr-password"
-    value = azurerm_container_registry.acr.admin_password
   }
 }
 
