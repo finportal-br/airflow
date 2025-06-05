@@ -2,11 +2,11 @@ FROM apache/airflow:2.9.0
 
 USER airflow
 
-# Instalação correta de pacotes no virtualenv ativo
 ENV AIRFLOW_HOME=/opt/airflow
 RUN pip install --no-cache-dir pandas
 
 COPY ./dags /opt/airflow/dags
 
+# Entrypoint padrão e comando explícito para iniciar o webserver
 ENTRYPOINT ["/entrypoint"]
-CMD ["webserver"]
+CMD ["airflow", "webserver"]
