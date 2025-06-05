@@ -1,51 +1,39 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy container app to Azure Web App - finportal-airflow
+name: Build and Deploy Airflow to Azure Web App
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
-    runs-on: 'ubuntu-latest'
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: richardfelix/finportal-airflow
+      IMAGE_TAG: ${{ github.ref_name }}
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v2
       with:
-        registry: https://index.docker.io/v1/
-        username: ${{ secrets.AzureAppService_ContainerUsername_5ba06fa3c22e4ab4b92563ec5dcba749 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_7db04b91b2e24317a84182ae620c229e }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push container image to registry
+    - name: Build and Push Docker image
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_5ba06fa3c22e4ab4b92563ec5dcba749 }}/richardfelix/finportal-airflow:${{ github.sha }}
+        tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
         file: ./Dockerfile
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-    steps:
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
+    - name: Azure Login (Publish Profile)
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'finportal-airflow'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_9dd7700c19e448faa51fc173ffec6d78 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_5ba06fa3c22e4ab4b92563ec5dcba749 }}/richardfelix/finportal-airflow:${{ github.sha }}'
+        publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+        images: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
